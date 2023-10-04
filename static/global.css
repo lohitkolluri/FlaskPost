@@ -1,11 +1,13 @@
 body {
+    background-color: #0E1015;
+    color: #FFFFFF;
     font-family: Arial, sans-serif;
-    margin: 20px;
 }
 
 .container {
-    max-width: 600px;
+    width: 50%;
     margin: 0 auto;
+    padding: 20px;
 }
 
 .header {
@@ -13,29 +15,14 @@ body {
     margin-bottom: 20px;
 }
 
-.input-group {
-    margin-bottom: 15px;
-}
-
-.input-group label {
-    display: block;
-    margin-bottom: 5px;
-}
-
-.input-group input,
-.email-content textarea {
-    width: 100%;
-    padding: 10px;
-}
-
 .preview-btn {
     padding: 10px 20px;
-    background-color: #007BFF;
-    color: #fff;
+    background-color: #40114F;
+    color: #FFFFFF;
     border: none;
     cursor: pointer;
 }
 
 .preview-btn:hover {
-    background-color: #0056b3;
+    background-color: #141117;
 }

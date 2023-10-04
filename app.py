@@ -19,46 +19,56 @@ mail = Mail(app)
 
 # Get a list of available templates
 def get_template_files():
-    template_files = []
-    for root, dirs, files in os.walk('templates'):
-        for file in files:
-            if file.endswith('_template.html'):
-                template_files.append(file)
+    template_files = [file for file in os.listdir('templates') if file.endswith('_template.html')]
     return template_files
+
+def fetch_recipient_data():
+    data = []
+    with open('input.csv', 'r') as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            if 'Email' in row and 'Name' in row:  # Check if the CSV contains the required columns
+                recipient_data = {
+                    'email': row['Email'],
+                    'name': row['Name']
+                }
+                data.append(recipient_data)
+    return data
 
 @app.route('/')
 def index():
     templates = get_template_files()
     return render_template('index.html', templates=templates)
 
-def fetch_recipient_names():
-    csv_file_path = os.path.join(os.getcwd(), 'input.csv')
-    names = []
-
-    with open(csv_file_path, 'r') as file:
-        csv_reader = csv.DictReader(file)
-        for row in csv_reader:
-            names.append(row['Name'])
-
-    return names
-
 @app.route('/send_emails', methods=['POST'])
 def send_emails():
+    # Ensure 'template' is present in the form data
+    if 'template' not in request.form:
+        return 'Bad request. Form data is missing.'
+
     # Get selected template
     selected_template = request.form['template']
     template_path = os.path.join('templates', selected_template)
 
     # Load email content from the selected template
     with open(template_path, 'r') as file:
-        email_content = file.read()
+        template_content = file.read().split('\n', 1)
 
-    # Fetch recipient names from the CSV file
-    recipient_names = fetch_recipient_names()
+    # Extract subject and body from the template
+    subject = template_content[0]
+    body = template_content[1] if len(template_content) > 1 else ''
 
-    for recipient_name in recipient_names:
-        updated_email_content = email_content.replace('{{ name }}', recipient_name)
+    # Fetch recipient emails and names from the CSV file
+    recipient_data = fetch_recipient_data()
+    
+    for data in recipient_data:
+        recipient_email = data['email']
+        recipient_name = data['name']
+        
+        # Substitute variables in the body
+        updated_body = body.replace('{{ name }}', recipient_name)
 
-        # Rest of the code to send emails, using updated_email_content
+        # Rest of the code to send emails, using updated_body and subject
         with app.app_context():
             mail.init_app(app)
             mail.username = app.config['MAIL_USERNAME']
@@ -67,14 +77,8 @@ def send_emails():
             mail.use_tls = app.config['MAIL_USE_TLS']
             mail.use_ssl = app.config['MAIL_USE_SSL']
 
-            # Modify the subject as needed
-            subject = 'Your Subject'
-
-            # Modify the recipient email as needed
-            recipient_email = 'recipient@example.com'
-
             msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[recipient_email])
-            msg.html = updated_email_content
+            msg.html = updated_body
 
             mail.send(msg)
 

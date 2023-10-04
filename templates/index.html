@@ -6,22 +6,16 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="header">FlaskPost - Mass Mailer</h1>
+        <h1 class="header">FlaskPost</h1>
 
         <h2>Select Email Template</h2>
         <form action="/send_emails" method="post">
-            <select name="template">
+            <select name="template" required>
                 {% for template in templates %}
                     <option value="{{ template }}">{{ template }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="preview-btn">Select Template</button>
-        </form>
-
-        <h2>Send Emails</h2>
-        <form action="/send_emails" method="post" enctype="multipart/form-data">
-            <input type="file" name="csv_file" accept=".csv" required>
-            <button type="submit" class="preview-btn">Send Emails</button>
+            <button type="submit" class="preview-btn">Select Template and Send</button>
         </form>
     </div>
 </body>
