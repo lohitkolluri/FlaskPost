@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FlaskPost - Mass Mailer</title>
+</head>
+<body>
+    <h1>FlaskPost - Mass Mailer</h1>
+    <form action="/send_emails" method="post" enctype="multipart/form-data">
+        <input type="file" name="csv_file" accept=".csv" required>
+        <button type="submit">Send Emails</button>
+    </form>
+</body>
+</html>
