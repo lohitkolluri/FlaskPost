@@ -2,12 +2,27 @@
 <html>
 <head>
     <title>FlaskPost - Mass Mailer</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='global.css') }}">
 </head>
 <body>
-    <h1>FlaskPost - Mass Mailer</h1>
-    <form action="/send_emails" method="post" enctype="multipart/form-data">
-        <input type="file" name="csv_file" accept=".csv" required>
-        <button type="submit">Send Emails</button>
-    </form>
+    <div class="container">
+        <h1 class="header">FlaskPost - Mass Mailer</h1>
+
+        <h2>Select Email Template</h2>
+        <form action="/send_emails" method="post">
+            <select name="template">
+                {% for template in templates %}
+                    <option value="{{ template }}">{{ template }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="preview-btn">Select Template</button>
+        </form>
+
+        <h2>Send Emails</h2>
+        <form action="/send_emails" method="post" enctype="multipart/form-data">
+            <input type="file" name="csv_file" accept=".csv" required>
+            <button type="submit" class="preview-btn">Send Emails</button>
+        </form>
+    </div>
 </body>
 </html>
