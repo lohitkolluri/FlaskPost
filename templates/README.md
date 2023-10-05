@@ -1,96 +1,76 @@
-# Email Templates Documentation
+# Email Template Styling and Editing Guide
 
-This documentation provides a comprehensive overview of email templates available for use with the FlaskPost Mass Mailer application. The application allows users to select from different email templates while sending mass emails.
+This guide provides information on how to style and edit email templates to create visually appealing and engaging emails.
 
-## Table of Contents
+## Styles and Formatting
 
-1. [Overview](#overview)
-2. [Available Email Templates](#available-email-templates)
-    - [Rich Text Formatting Template](#1-rich-text-formatting-template-rich_text_templatehtml)
-    - [Table Formatting Template](#2-table-formatting-template-table_templatehtml)
-    - [Styled Template](#3-styled-template-styled_templatehtml)
-3. [How to Use Email Templates](#how-to-use-email-templates)
+### 1. Images
 
-## Overview
-
-Email templates are pre-designed layouts that define the structure and styling of an email. In the context of the FlaskPost Mass Mailer application, these templates serve as a starting point for creating email content for mass emails. Users can choose from a variety of templates to suit their specific communication needs.
-
-## Available Email Templates
-
-### 1. Rich Text Formatting Template (`_rich_text_template.html`)
-
-This template showcases various rich text formatting options, including:
-
-- **Bold**: `<strong>`
-- **Italics**: `<em>`
-- **Underline**: `<u>`
-- **Bulleted and numbered lists**: `<ul>` and `<ol>`
-- **Links**: `<a>`
-- **Images**: `<img>`
-
-Example Usage:
+You can include images using the `<img>` tag. Ensure images are optimized and use the following style to make them responsive:
 ```html
-<p>This is <strong>bold text</strong> and this is <em>italicized text</em>. You can also <u>underline</u> text.</p>
+<style>
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+```
+
+Example:
+```html
+<img src="https://example.com/image.jpg" alt="Description">
+```
+
+### 2. Buttons
+
+Style buttons using CSS for a consistent look:
+```html
+<style>
+    .button {
+        display: inline-block;
+        font-size: 16px;
+        padding: 10px 20px;
+        text-decoration: none;
+        background-color: #3498db;
+        color: #fff;
+        border-radius: 5px;
+    }
+</style>
+```
+
+Example:
+```html
+<a href="https://example.com" class="button">Click Me</a>
+```
+
+### 3. Links
+
+Simply use the `<a>` (anchor) tag for links:
+```html
 <ul>
-    <li>Item 1</li>
-    <li>Item 2</li>
+    <li><a href="https://example.com/page1">Link 1</a></li>
+    <li><a href="https://example.com/page2">Link 2</a></li>
+    <li><a href="https://example.com/page3">Link 3</a></li>
 </ul>
 ```
 
-### 2. Table Formatting Template (`_table_template.html`)
+## Template Editing
 
-This template demonstrates the use of HTML tables to organize content in tabular format.
+### Template Structure
 
-Example Usage:
-```html
-<table border="1">
-    <tr>
-        <th>Header 1</th>
-        <th>Header 2</th>
-    </tr>
-    <tr>
-        <td>Data 1</td>
-        <td>Data 2</td>
-    </tr>
-</table>
-```
-
-### 3. Styled Template (`_styled_template.html`)
-
-This template applies CSS styling to the email content to create a visually appealing layout.
-
-Example Usage:
+Email templates are written in HTML. Each template follows the basic structure:
 ```html
 <!DOCTYPE html>
 <html>
 <head>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-        }
-        .container {
-            padding: 20px;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-    </style>
+    <title>Your Template</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Hello, World!</h1>
-        <p>This is a styled email template.</p>
-    </div>
+    <!-- Your content here -->
 </body>
 </html>
 ```
 
-## How to Use Email Templates
+### Customization
 
-1. Choose an email template based on the desired formatting and styling.
-2. Select the chosen template while using the FlaskPost Mass Mailer application to send emails.
-
-Users can refer to this documentation to understand the available email templates, their features, and how to use them with the FlaskPost Mass Mailer application. 
-
----
+You can customize text, links, and images according to your needs within the `<body>` section of the HTML template.
