@@ -1,3 +1,8 @@
-/venv
+# Ignore virtual environment folder
+venv/
+
+# Ignore .env file
 .env
+
+# Ignore input.csv
 input.csv
