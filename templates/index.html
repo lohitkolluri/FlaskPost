@@ -10,11 +10,16 @@
 
         <h2>Select Email Template</h2>
         <form action="/send_emails" method="post">
-            <select name="template" required>
+            <ul>
                 {% for template in templates %}
-                    <option value="{{ template }}">{{ template }}</option>
+                    <li>
+                        <label>
+                            <input type="radio" name="template" value="{{ template }}" required>
+                            {{ template.replace('_template.html', '') }}
+                        </label>
+                    </li>
                 {% endfor %}
-            </select>
+            </ul>
             <button type="submit" class="preview-btn">Select Template and Send</button>
         </form>
     </div>
