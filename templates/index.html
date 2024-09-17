@@ -1,27 +1,222 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>FlaskPost - Mass Mailer</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='global.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Previewer</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .editor,
+        .preview {
+            width: 50%;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+        }
+
+        .editor {
+            background-color: #1e1e1e;
+            border-right: 1px solid #333;
+        }
+
+        .editor h2 {
+            color: #00d4a3;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .editor textarea,
+        .editor input {
+            width: calc(100% - 20px);
+            margin-bottom: 20px;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: #292929;
+            color: #e0e0e0;
+            font-size: 16px;
+            line-height: 1.5;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .editor textarea {
+            height: 150px;
+            resize: vertical;
+        }
+
+        .editor textarea:focus,
+        .editor input:focus {
+            box-shadow: 0 0 8px #00d4a3;
+            outline: none;
+        }
+
+        .editor input:invalid {
+            border: 2px solid red;
+        }
+
+        .editor button {
+            width: 100%;
+            padding: 12px;
+            background-color: #00d4a3;
+            border: none;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            margin-top: 10px;
+        }
+
+        .editor button:hover {
+            background-color: #00a886;
+        }
+
+        .editor button:active {
+            transform: scale(0.97);
+        }
+
+        .preview {
+            background-color: #1e1e1e;
+            border-left: 1px solid #333;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .preview h2 {
+            color: #00d4a3;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .preview h4,
+        .preview h5 {
+            margin: 5px 0;
+        }
+
+        iframe {
+            width: 100%;
+            height: calc(100% - 80px);
+            border: none;
+            border-radius: 8px;
+            background-color: #121212;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        iframe {
+            transition: box-shadow 0.3s;
+        }
+
+        iframe:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .editor,
+            .preview {
+                width: 100%;
+                padding: 15px;
+            }
+
+            .editor textarea {
+                height: 150px;
+            }
+
+            iframe {
+                height: 50vh;
+            }
+        }
+    </style>
 </head>
+
 <body>
     <div class="container">
-        <h1 class="header">FlaskPost</h1>
-
-        <h2>Select Email Template</h2>
-        <form action="/send_emails" method="post">
-            <ul>
-                {% for template in templates %}
-                    <li>
-                        <label>
-                            <input type="radio" name="template" value="{{ template }}" required>
-                            {{ template.replace('_template.html', '') }}
-                        </label>
-                    </li>
-                {% endfor %}
-            </ul>
-            <button type="submit" class="preview-btn">Select Template and Send</button>
-        </form>
+        <div class="editor">
+            <h2>HTML Editor</h2>
+            <form action="/send_emails" method="post" id="emailForm">
+                <textarea id="htmlInput" name="htmlContent" placeholder="Write or paste your HTML here..."></textarea>
+                <input type="text" name="subject" placeholder="Email Subject" required aria-label="Email Subject"
+                    oninvalid="this.setCustomValidity('Please enter a subject')" oninput="this.setCustomValidity('')">
+                <input type="text" name="senderName" placeholder="Sender Name" required aria-label="Sender Name"
+                    oninvalid="this.setCustomValidity('Please enter the sender\'s name')"
+                    oninput="this.setCustomValidity('')">
+                <button type="submit" aria-label="Send Emails">Send Emails</button>
+            </form>
+        </div>
+        <div class="preview">
+            <h2>Email Preview</h2>
+            <h4 id="subjectPreview"></h4>
+            <h5 id="senderPreview"></h5>
+            <iframe id="emailOutput"></iframe>
+        </div>
     </div>
+
+    <script>
+        const htmlInput = document.getElementById('htmlInput');
+        const emailOutput = document.getElementById('emailOutput');
+        const subjectInput = document.querySelector('input[name="subject"]');
+        const senderInput = document.querySelector('input[name="senderName"]');
+        const subjectPreview = document.getElementById('subjectPreview');
+        const senderPreview = document.getElementById('senderPreview');
+
+        // Debouncing function to avoid excessive updates
+        function debounce(func, timeout = 300) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => { func.apply(this, args); }, timeout);
+            };
+        }
+
+        // Real-time HTML content update inside iframe with debouncing
+        htmlInput.addEventListener('input', debounce(() => {
+            const doc = emailOutput.contentDocument || emailOutput.contentWindow.document;
+            doc.open();
+            doc.write(htmlInput.value);
+            doc.close();
+        }));
+
+        // Real-time subject preview
+        subjectInput.addEventListener('input', debounce(() => {
+            subjectPreview.textContent = subjectInput.value || 'No Subject';
+        }));
+
+        // Real-time sender name preview
+        senderInput.addEventListener('input', debounce(() => {
+            senderPreview.textContent = `From: ${senderInput.value || 'No Sender Name'}`;
+        }));
+    </script>
 </body>
+
 </html>

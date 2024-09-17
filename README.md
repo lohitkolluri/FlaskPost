@@ -1,77 +1,114 @@
-<h1 align="center" id="title">FlaskPost</h1>
+# FlaskPost
 
-<p id="description">FlaskPost is a web application designed for sending personalized emails to multiple recipients using predefined templates. This project utilizes Flask for the web application and Flask-Mail for email delivery.</p>
+FlaskPost is a web application designed for sending personalized emails to multiple recipients using an HTML editor. The application allows real-time previewing of emails and uses Flask-Mail for email delivery. Recipient details can be imported from a CSV file, and emails are sent using SMTP credentials provided in environment variables.
 
-  
-  
-<h2>🧐 Features</h2>
+## 🧐 Features
 
-Here're some of the project's best features:
+Here are some of the features of this project:
 
-*   Template Selection: Choose from a variety of predefined email templates for different purposes.
-*   Email Personalization: Customize emails with recipient names company details etc. using merge fields.
-*   Email Sending: Send customized emails to multiple recipients at once.
-*   CSV Data Import: Easily import recipient data (email and name) from a CSV file.
-*   SMTP Configuration: Configure SMTP settings for email sending through environment variables or default values.
+- **Real-Time HTML Editor:** A built-in HTML editor allows users to create or paste email templates with real-time previews.
+- **Email Personalization:** Customize email content using placeholders like `{{Name}}` to dynamically insert recipient-specific data.
+- **Bulk Email Sending:** Send emails to multiple recipients by importing recipient details (like email and name) from a CSV file.
+- **CSV Data Import:** Import recipient data from a CSV file (`input.csv`), ensuring the CSV contains at least 'Email' and 'Name' columns.
+- **SMTP Configuration:** Use environment variables for SMTP configuration, allowing flexibility in choosing email providers like Gmail, Outlook, etc.
+- **Real-Time Subject and Sender Preview:** Dynamically preview subject lines and sender names as you type them into the form fields.
+- **Error Logging:** Logs email sending errors and outputs them to the terminal for debugging.
 
-<h2>🛠️ Installation Steps:</h2>
+## 🛠️ Installation Steps:
 
-<p>1. Clone the repository:</p>
+1. Clone the repository:
 
-```
-git clone https://github.com/lohitkolluri/FlaskPost.git cd FlaskPost
-```
+   ```bash
+   git clone https://github.com/lohitkolluri/FlaskPost.git
+   cd FlaskPost
+   ```
 
-<p>2. Create and activate a virtual environment:</p>
+2. Create and activate a virtual environment:
 
-```
-python -m venv venv source
-venv/bin/activate   # On Windows use: venv\Scripts\activate
-```
+   ```bash
+   python -m venv venv
+   source venv/bin/activate   # On Windows use: venv\Scripts\activate
+   ```
 
-<p>3. Install dependencies:</p>
+3. Install dependencies:
 
-```
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-<p>4. Set up environment variables:</p>
+4. Set up environment variables:
 
-Create a `.env` file in the root directory and add the following:
+Create a `.env` file in the root directory and add the following SMTP configuration:
 
-    
+    ```ini
     MAIL_SERVER=smtp.gmail.com
     MAIL_PORT=587
     MAIL_USERNAME=your_username@gmail.com
     MAIL_PASSWORD=your_password
     MAIL_USE_TLS=True
     MAIL_USE_SSL=False
-    
-Replace ``` your_username@gmail.com ``` and `your_password` with your Gmail credentials or appropriate SMTP configuration.
+    ```
 
-<h2>⚙️ Usage:</h2>
+Replace `your_username@gmail.com` and `your_password` with your Gmail credentials or use your desired SMTP server settings.
 
-<p>1. Run the application:</p>
+5. Prepare a CSV file (`input.csv`) with at least the following two columns:
 
-```
-python app.py
-```
+   - **Email**: The recipient's email address.
+   - **Name**: The recipient's name.
 
-<p>2. Open localhost in your browser:</p>
+   Example CSV file:
 
-  https://localhost:3000
+   ```csv
+   Email,Name
+   john@example.com,John Doe
+   jane@example.com,Jane Smith
+   ```
 
-<p>3. Select an email template customize the template content and send emails to recipients.</p>
-  
-<h2>💻 Built with</h2>
+## ⚙️ Usage:
+
+1. Run the application:
+
+   ```bash
+   python app.py
+   ```
+
+2. Open the application in your browser:
+
+   ```bash
+   http://localhost:3000
+   ```
+
+3. In the HTML editor, create or paste your email content. Use `{{Name}}` as a placeholder for recipient names. For example:
+
+   ```html
+   <p>Hello {{Name}},</p>
+   <p>We are excited to invite you to our event!</p>
+   ```
+
+4. Fill in the "Email Subject" and "Sender Name" fields, and upload your recipient CSV file.
+
+5. Click the "Send Emails" button to send personalized emails to all recipients listed in the CSV file.
+
+## 🖥️ Real-Time Email Preview
+
+As you type into the HTML editor, email subject, or sender name fields, the email preview will update automatically on the right side of the screen, showing you exactly what the email will look like.
+
+## 🛡️ Error Handling
+
+- If any required field is missing (HTML content, subject, sender name), the app will display an error.
+- If the CSV file is missing or incorrectly formatted, an error will be logged.
+- Failed email sends are logged in the terminal along with the recipient's email and the reason for the failure.
+
+## 💻 Built with
 
 Technologies used in the project:
 
-*   Python
-*   Flask
-*   Flask-Mail
-*   Dotenv
+- **Python** for the backend logic.
+- **Flask** for building the web application.
+- **Flask-Mail** for handling email sending.
+- **dotenv** for managing environment variables.
+- **HTML/CSS/JavaScript** for the frontend with real-time email preview functionality.
 
-<h2>🛡️ License:</h2>
+## 🛡️ License:
 
-This project is licensed under the [MIT License](LICENSE)
+This project is licensed under the [MIT License](LICENSE).
