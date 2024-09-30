@@ -41,7 +41,8 @@
             border-right: 1px solid #333;
         }
 
-        .editor h2 {
+        .editor h2,
+        .preview h2 {
             color: #00d4a3;
             margin-bottom: 20px;
             font-size: 24px;
@@ -107,14 +108,6 @@
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .preview h2 {
-            color: #00d4a3;
-            margin-bottom: 20px;
-            font-size: 24px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-        }
-
         .preview h4,
         .preview h5 {
             margin: 5px 0;
@@ -127,14 +120,110 @@
             border-radius: 8px;
             background-color: #121212;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        iframe {
             transition: box-shadow 0.3s;
         }
 
         iframe:hover {
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .modal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #1e1e1e;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #00d4a3;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal input {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background-color: #292929;
+            color: #e0e0e0;
+            width: calc(100% - 20px);
+        }
+
+        .modal button {
+            padding: 10px;
+            background-color: #00d4a3;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .modal button:hover {
+            background-color: #00a886;
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            top: 0;
+            right: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+            width: 100%;
+        }
+
+        .file-upload button {
+            width: 100%;
+            padding: 12px;
+            background-color: #00d4a3;
+            border: none;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .file-upload button:hover {
+            background-color: #00a886;
+        }
+
+        .file-upload button:active {
+            transform: scale(0.97);
         }
 
         @media (max-width: 768px) {
@@ -164,13 +253,20 @@
     <div class="container">
         <div class="editor">
             <h2>HTML Editor</h2>
-            <form action="/send_emails" method="post" id="emailForm">
+            <form action="/send_emails" method="post" id="emailForm" enctype="multipart/form-data">
                 <textarea id="htmlInput" name="htmlContent" placeholder="Write or paste your HTML here..."></textarea>
                 <input type="text" name="subject" placeholder="Email Subject" required aria-label="Email Subject"
                     oninvalid="this.setCustomValidity('Please enter a subject')" oninput="this.setCustomValidity('')">
                 <input type="text" name="senderName" placeholder="Sender Name" required aria-label="Sender Name"
                     oninvalid="this.setCustomValidity('Please enter the sender\'s name')"
                     oninput="this.setCustomValidity('')">
+
+                <div class="file-upload">
+                    <button type="button">Upload CSV</button>
+                    <input type="file" id="csvInput" name="csvFile" accept=".csv" aria-label="CSV File Input" required>
+                </div>
+
+                <button type="button" id="smtpButton">Configure SMTP</button>
                 <button type="submit" aria-label="Send Emails">Send Emails</button>
             </form>
         </div>
@@ -182,40 +278,97 @@
         </div>
     </div>
 
-    <script>
-        const htmlInput = document.getElementById('htmlInput');
-        const emailOutput = document.getElementById('emailOutput');
-        const subjectInput = document.querySelector('input[name="subject"]');
-        const senderInput = document.querySelector('input[name="senderName"]');
-        const subjectPreview = document.getElementById('subjectPreview');
-        const senderPreview = document.getElementById('senderPreview');
+    <div id="smtpModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>SMTP Configuration</h2>
+            <input type="text" id="smtpHost" placeholder="SMTP Host" required>
+            <input type="text" id="smtpPort" placeholder="SMTP Port" required>
+            <input type="text" id="smtpUser" placeholder="SMTP Username" required>
+            <input type="password" id="smtpPass" placeholder="SMTP Password" required>
+            <button id="saveSmtp">Save SMTP Details</button>
+        </div>
+    </div>
 
-        // Debouncing function to avoid excessive updates
-        function debounce(func, timeout = 300) {
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => { func.apply(this, args); }, timeout);
-            };
+    <script>
+        document.getElementById("htmlInput").addEventListener("input", function () {
+            const htmlContent = this.value;
+            const emailOutput = document.getElementById("emailOutput");
+            emailOutput.srcdoc = htmlContent;
+        });
+
+        document.getElementById("emailForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/send_emails', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Emails sent successfully!");
+                    } else {
+                        alert("Error: " + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+        // Handle CSV file upload
+        document.getElementById("csvInput").addEventListener("change", function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                alert("CSV file uploaded: " + file.name);
+            }
+        });
+
+        // SMTP Modal functionality
+        var modal = document.getElementById("smtpModal");
+        var btn = document.getElementById("smtpButton");
+        var span = document.getElementsByClassName("close")[0];
+
+        btn.onclick = function () {
+            modal.style.display = "block";
         }
 
-        // Real-time HTML content update inside iframe with debouncing
-        htmlInput.addEventListener('input', debounce(() => {
-            const doc = emailOutput.contentDocument || emailOutput.contentWindow.document;
-            doc.open();
-            doc.write(htmlInput.value);
-            doc.close();
-        }));
+        span.onclick = function () {
+            modal.style.display = "none";
+        }
 
-        // Real-time subject preview
-        subjectInput.addEventListener('input', debounce(() => {
-            subjectPreview.textContent = subjectInput.value || 'No Subject';
-        }));
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
 
-        // Real-time sender name preview
-        senderInput.addEventListener('input', debounce(() => {
-            senderPreview.textContent = `From: ${senderInput.value || 'No Sender Name'}`;
-        }));
+        // Save SMTP Configuration
+        document.getElementById("saveSmtp").addEventListener("click", function () {
+            const smtpHost = document.getElementById("smtpHost").value;
+            const smtpPort = document.getElementById("smtpPort").value;
+            const smtpUser = document.getElementById("smtpUser").value;
+            const smtpPass = document.getElementById("smtpPass").value;
+
+            fetch('/configure_smtp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    smtpHost,
+                    smtpPort,
+                    smtpUser,
+                    smtpPass
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    modal.style.display = "none";
+                })
+                .catch(error => console.error('Error:', error));
+        });
     </script>
 </body>
 
