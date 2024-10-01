@@ -4,247 +4,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Previewer</title>
+    <title>FlaskPost - Mass Mailer</title>
     <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #121212;
-            color: #e0e0e0;
+        /* General Settings */
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0d0d0d;
+            color: #e5e5e5;
             display: flex;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
             overflow: hidden;
         }
 
         .container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr;
+            grid-gap: 20px;
+            width: 100vw;
+            height: 100vh;
+            background-color: #161616;
+            border-radius: 0;
+            padding: 20px;
+            box-shadow: none;
         }
 
         .editor,
         .preview {
-            width: 50%;
+            background-color: #1f1f1f;
+            border-radius: 0;
             padding: 20px;
-            box-sizing: border-box;
+            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
-            border-radius: 12px;
-        }
-
-        .editor {
-            background-color: #1e1e1e;
-            border-right: 1px solid #333;
+            height: 100%;
         }
 
         .editor h2,
         .preview h2 {
-            color: #00d4a3;
-            margin-bottom: 20px;
-            font-size: 24px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
+            color: #00cba9;
+            font-size: 28px;
+            margin-bottom: 15px;
         }
 
         .editor textarea,
         .editor input {
-            width: calc(100% - 20px);
-            margin-bottom: 20px;
+            width: 100%;
+            margin-bottom: 15px;
             padding: 15px;
-            border: none;
-            border-radius: 8px;
             background-color: #292929;
-            color: #e0e0e0;
+            border: none;
+            border-radius: 12px;
+            color: #e5e5e5;
             font-size: 16px;
-            line-height: 1.5;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-            transition: box-shadow 0.2s, border-color 0.2s;
         }
 
         .editor textarea {
-            height: 150px;
+            height: 200px;
             resize: vertical;
         }
 
-        .editor textarea:focus,
-        .editor input:focus {
-            box-shadow: 0 0 8px #00d4a3;
-            outline: none;
-        }
-
-        .editor input:invalid {
-            border: 2px solid red;
-        }
-
-        .editor button {
-            width: 100%;
-            padding: 12px;
-            background-color: #00d4a3;
+        .editor button,
+        .file-upload button {
+            background-color: #00cba9;
+            color: #fff;
+            padding: 15px;
             border: none;
-            border-radius: 8px;
-            color: #ffffff;
+            border-radius: 12px;
             font-size: 18px;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            flex: 1;
+            margin: 0;
         }
 
-        .editor button:hover {
-            background-color: #00a886;
+        .editor button:hover,
+        .file-upload button:hover {
+            background-color: #00a17f;
         }
 
-        .editor button:active {
-            transform: scale(0.97);
+        .editor input:focus,
+        .editor textarea:focus {
+            outline: 2px solid #00cba9;
         }
 
-        .preview {
-            background-color: #1e1e1e;
-            border-left: 1px solid #333;
-            overflow-y: auto;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: auto;
+            gap: 10px;
         }
 
-        .preview h4,
-        .preview h5 {
-            margin: 5px 0;
-        }
-
-        iframe {
+        .preview iframe {
             width: 100%;
-            height: calc(100% - 80px);
+            height: calc(100% - 60px);
+            border-radius: 12px;
             border: none;
-            border-radius: 8px;
             background-color: #121212;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            transition: box-shadow 0.3s;
-        }
-
-        iframe:hover {
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
         }
 
         .modal {
             display: none;
-            /* Hidden by default */
             position: fixed;
-            z-index: 1000;
-            left: 0;
             top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.7);
-            padding-top: 60px;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
         }
 
         .modal-content {
-            background-color: #1e1e1e;
-            margin: 5% auto;
+            background-color: #1f1f1f;
             padding: 20px;
-            border: 1px solid #333;
             border-radius: 12px;
-            width: 80%;
-            max-width: 500px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            color: #e5e5e5;
+            display: flex;
+            flex-direction: column;
         }
 
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: #00d4a3;
-            text-decoration: none;
-            cursor: pointer;
+        .modal-content h3 {
+            margin-bottom: 15px;
+            color: #00cba9;
+            text-align: center;
         }
 
         .modal input {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
-            background-color: #292929;
-            color: #e0e0e0;
-            width: calc(100% - 20px);
-        }
-
-        .modal button {
-            padding: 10px;
-            background-color: #00d4a3;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .modal button:hover {
-            background-color: #00a886;
-        }
-
-        .file-upload {
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-
-        .file-upload input[type="file"] {
-            position: absolute;
-            top: 0;
-            right: 0;
-            opacity: 0;
-            cursor: pointer;
-            height: 100%;
-            width: 100%;
-        }
-
-        .file-upload button {
             width: 100%;
             padding: 12px;
-            background-color: #00d4a3;
+            margin-bottom: 10px;
+            background-color: #292929;
             border: none;
             border-radius: 8px;
-            color: #ffffff;
-            font-size: 18px;
+            color: #e5e5e5;
+            font-size: 14px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            background-color: #00cba9;
+            border: none;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
+            margin: 0 5px;
         }
 
-        .file-upload button:hover {
-            background-color: #00a886;
-        }
-
-        .file-upload button:active {
-            transform: scale(0.97);
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-                height: auto;
-            }
-
-            .editor,
-            .preview {
-                width: 100%;
-                padding: 15px;
-            }
-
-            .editor textarea {
-                height: 150px;
-            }
-
-            iframe {
-                height: 50vh;
-            }
+        .modal-buttons button:hover {
+            background-color: #00a17f;
         }
     </style>
 </head>
@@ -255,119 +182,103 @@
             <h2>HTML Editor</h2>
             <form action="/send_emails" method="post" id="emailForm" enctype="multipart/form-data">
                 <textarea id="htmlInput" name="htmlContent" placeholder="Write or paste your HTML here..."></textarea>
-                <input type="text" name="subject" placeholder="Email Subject" required aria-label="Email Subject"
-                    oninvalid="this.setCustomValidity('Please enter a subject')" oninput="this.setCustomValidity('')">
-                <input type="text" name="senderName" placeholder="Sender Name" required aria-label="Sender Name"
-                    oninvalid="this.setCustomValidity('Please enter the sender\'s name')"
-                    oninput="this.setCustomValidity('')">
-
-                <div class="file-upload">
-                    <button type="button">Upload CSV</button>
-                    <input type="file" id="csvInput" name="csvFile" accept=".csv" aria-label="CSV File Input" required>
+                <input type="text" name="subject" placeholder="Email Subject" required>
+                <input type="text" name="senderName" placeholder="Sender Name" required>
+                <input type="file" id="csvInput" name="csvFile" accept=".csv" style="display: none;">
+                <div class="button-container">
+                    <button type="button" id="smtpButton">Configure SMTP</button>
+                    <button type="button" id="uploadButton">Upload CSV</button>
+                    <button type="submit">Send Emails</button>
                 </div>
-
-                <button type="button" id="smtpButton">Configure SMTP</button>
-                <button type="submit" aria-label="Send Emails">Send Emails</button>
             </form>
         </div>
         <div class="preview">
             <h2>Email Preview</h2>
-            <h4 id="subjectPreview"></h4>
-            <h5 id="senderPreview"></h5>
-            <iframe id="emailOutput"></iframe>
+            <iframe id="emailPreview" srcdoc=""></iframe>
         </div>
     </div>
 
-    <div id="smtpModal" class="modal">
+    <!-- Modal for SMTP Configuration -->
+    <div class="modal" id="smtpModal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>SMTP Configuration</h2>
-            <input type="text" id="smtpHost" placeholder="SMTP Host" required>
-            <input type="text" id="smtpPort" placeholder="SMTP Port" required>
-            <input type="text" id="smtpUser" placeholder="SMTP Username" required>
-            <input type="password" id="smtpPass" placeholder="SMTP Password" required>
-            <button id="saveSmtp">Save SMTP Details</button>
+            <h3>Configure SMTP</h3>
+            <form id="smtpForm">
+                <input type="text" id="smtpHost" placeholder="SMTP Host" required>
+                <input type="number" id="smtpPort" placeholder="SMTP Port" required>
+                <input type="text" id="smtpUser" placeholder="SMTP Username" required>
+                <input type="password" id="smtpPass" placeholder="SMTP Password" required>
+                <div class="modal-buttons">
+                    <button type="button" id="saveSmtp">Save</button>
+                    <button type="button" id="closeModal">Close</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
-        document.getElementById("htmlInput").addEventListener("input", function () {
-            const htmlContent = this.value;
-            const emailOutput = document.getElementById("emailOutput");
-            emailOutput.srcdoc = htmlContent;
-        });
+        // Handle CSV Upload Button
+        document.getElementById("uploadButton").onclick = function () {
+            document.getElementById("csvInput").click(); // Triggers the hidden file input
+        };
 
-        document.getElementById("emailForm").addEventListener("submit", function (event) {
-            event.preventDefault();
-            const formData = new FormData(this);
+        document.getElementById("csvInput").onchange = function (event) {
+            const fileName = event.target.files[0] ? event.target.files[0].name : "No file chosen";
+            alert("Selected file: " + fileName);
+        };
 
-            fetch('/send_emails', {
+        // Handle SMTP Configuration Modal
+        document.getElementById("smtpButton").onclick = function () {
+            document.getElementById("smtpModal").style.display = "flex"; // Show modal
+        };
+
+        document.getElementById("closeModal").onclick = function () {
+            document.getElementById("smtpModal").style.display = "none"; // Close modal
+        };
+
+        document.getElementById("saveSmtp").onclick = function () {
+            const host = document.getElementById("smtpHost").value;
+            const port = document.getElementById("smtpPort").value;
+            const user = document.getElementById("smtpUser").value;
+            const pass = document.getElementById("smtpPass").value;
+
+            fetch('/configure_smtp', {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ smtpHost: host, smtpPort: port, smtpUser: user, smtpPass: pass })
             })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert("Emails sent successfully!");
+                        alert("SMTP settings saved!");
+                        document.getElementById("smtpModal").style.display = "none"; // Close modal
                     } else {
-                        alert("Error: " + data.error);
+                        alert("Failed to save SMTP settings!");
                     }
                 })
-                .catch(error => console.error('Error:', error));
-        });
+                .catch(error => {
+                    console.error("Error:", error);
+                });
+        };
 
-        // Handle CSV file upload
-        document.getElementById("csvInput").addEventListener("change", function (event) {
-            const file = event.target.files[0];
-            if (file) {
-                alert("CSV file uploaded: " + file.name);
-            }
-        });
+        // Live preview for HTML content
+        const htmlInput = document.getElementById('htmlInput');
+        const emailPreview = document.getElementById('emailPreview');
 
-        // SMTP Modal functionality
-        var modal = document.getElementById("smtpModal");
-        var btn = document.getElementById("smtpButton");
-        var span = document.getElementsByClassName("close")[0];
-
-        btn.onclick = function () {
-            modal.style.display = "block";
-        }
-
-        span.onclick = function () {
-            modal.style.display = "none";
-        }
-
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
-
-        // Save SMTP Configuration
-        document.getElementById("saveSmtp").addEventListener("click", function () {
-            const smtpHost = document.getElementById("smtpHost").value;
-            const smtpPort = document.getElementById("smtpPort").value;
-            const smtpUser = document.getElementById("smtpUser").value;
-            const smtpPass = document.getElementById("smtpPass").value;
-
-            fetch('/configure_smtp', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({
-                    smtpHost,
-                    smtpPort,
-                    smtpUser,
-                    smtpPass
-                })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    alert(data.message);
-                    modal.style.display = "none";
-                })
-                .catch(error => console.error('Error:', error));
+        htmlInput.addEventListener('input', () => {
+            const htmlContent = htmlInput.value;
+            emailPreview.srcdoc = `
+                <html>
+                    <head>
+                        <style>
+                            body {
+                                color: white; /* Set the font color to white */
+                                background-color: #121212; /* Optional: Set a background color */
+                            }
+                        </style>
+                    </head>
+                    <body>${htmlContent}</body>
+                </html>
+            `; // Update iframe with new HTML and style
         });
     </script>
 </body>
