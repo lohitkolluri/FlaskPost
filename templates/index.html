@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlaskPost - Mass Mailer</title>
     <style>
-        /* General Settings */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -23,6 +22,7 @@
             align-items: center;
             height: 100vh;
             overflow: hidden;
+            position: relative;
         }
 
         .container {
@@ -173,6 +173,26 @@
         .modal-buttons button:hover {
             background-color: #00a17f;
         }
+
+        .toast {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #00cba9;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease, top 0.5s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            top: 30px;
+        }
     </style>
 </head>
 
@@ -215,24 +235,25 @@
         </div>
     </div>
 
+    <div class="toast" id="toast"></div>
+
     <script>
-        // Handle CSV Upload Button
+
         document.getElementById("uploadButton").onclick = function () {
-            document.getElementById("csvInput").click(); // Triggers the hidden file input
+            document.getElementById("csvInput").click();
         };
 
         document.getElementById("csvInput").onchange = function (event) {
             const fileName = event.target.files[0] ? event.target.files[0].name : "No file chosen";
-            alert("Selected file: " + fileName);
+            showToast("Selected file: " + fileName);
         };
 
-        // Handle SMTP Configuration Modal
         document.getElementById("smtpButton").onclick = function () {
-            document.getElementById("smtpModal").style.display = "flex"; // Show modal
+            document.getElementById("smtpModal").style.display = "flex";
         };
 
         document.getElementById("closeModal").onclick = function () {
-            document.getElementById("smtpModal").style.display = "none"; // Close modal
+            document.getElementById("smtpModal").style.display = "none";
         };
 
         document.getElementById("saveSmtp").onclick = function () {
@@ -249,10 +270,10 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert("SMTP settings saved!");
-                        document.getElementById("smtpModal").style.display = "none"; // Close modal
+                        showToast("SMTP settings saved!");
+                        document.getElementById("smtpModal").style.display = "none";
                     } else {
-                        alert("Failed to save SMTP settings!");
+                        showToast("Failed to save SMTP settings!");
                     }
                 })
                 .catch(error => {
@@ -260,7 +281,6 @@
                 });
         };
 
-        // Live preview for HTML content
         const htmlInput = document.getElementById('htmlInput');
         const emailPreview = document.getElementById('emailPreview');
 
@@ -271,15 +291,25 @@
                     <head>
                         <style>
                             body {
-                                color: white; /* Set the font color to white */
-                                background-color: #121212; /* Optional: Set a background color */
+                                color: white; 
+                                background-color: #121212; 
                             }
                         </style>
                     </head>
                     <body>${htmlContent}</body>
                 </html>
-            `; // Update iframe with new HTML and style
+            `;
         });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
     </script>
 </body>
 

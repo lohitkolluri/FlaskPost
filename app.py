@@ -5,22 +5,19 @@ from flask import Flask, render_template, request, jsonify
 from flask_mail import Mail, Message
 import logging
 import io
+from jinja2 import Template
 
 app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-# Store SMTP configuration globally
 smtp_config = {}
 
-# Email validation regex (simple version)
 email_regex = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
 def is_valid_email(email):
     """ Validate email format using regex. """
-    if re.fullmatch(email_regex, email):
-        return True
-    return False
+    return re.fullmatch(email_regex, email) is not None
 
 @app.route('/')
 def index():
@@ -34,8 +31,8 @@ def configure_smtp():
         'MAIL_PORT': int(request.form.get('smtpPort')),
         'MAIL_USERNAME': request.form.get('smtpUser'),
         'MAIL_PASSWORD': request.form.get('smtpPass'),
-        'MAIL_USE_TLS': True,  # Can be configured based on a checkbox if needed
-        'MAIL_USE_SSL': False   # Can be configured based on a checkbox if needed
+        'MAIL_USE_TLS': True, 
+        'MAIL_USE_SSL': False  
     }
     
     logging.info(f"SMTP Config: {smtp_config}")
@@ -57,9 +54,8 @@ def send_emails():
         return jsonify({'success': False, 'error': 'Empty CSV file uploaded'}), 400
     
     try:
-        # Read CSV content
         stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
-        csv_input = csv.reader(stream)
+        csv_input = csv.DictReader(stream)  
         
         mail = Mail(app)
         mail.init_app(app)
@@ -69,18 +65,22 @@ def send_emails():
 
         with mail.connect() as conn:
             for row in csv_input:
-                recipient_email = row[0].strip()  
+                recipient_email = row['Email'].strip()
 
                 if not is_valid_email(recipient_email):
                     invalid_emails.append(recipient_email)
                     continue 
+                
+            
+                template = Template(html_content)
+                personalized_html = template.render(row) 
                 
                 msg = Message(
                     subject=subject,
                     sender=(sender_name, smtp_config['MAIL_USERNAME']),
                     recipients=[recipient_email]
                 )
-                msg.html = html_content
+                msg.html = personalized_html
                 conn.send(msg)
                 success_emails.append(recipient_email)
 
