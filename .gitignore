@@ -6,3 +6,4 @@ venv/
 
 # Ignore input.csv
 input.csv
+.vercel

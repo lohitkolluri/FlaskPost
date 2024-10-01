@@ -1,4 +1,3 @@
 flask
 flask_mail
-python-dotenv
-bleach
+Jinja2

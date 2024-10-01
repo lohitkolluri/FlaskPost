@@ -71,7 +71,6 @@ def send_emails():
                     invalid_emails.append(recipient_email)
                     continue 
                 
-            
                 template = Template(html_content)
                 personalized_html = template.render(row) 
                 
@@ -93,5 +92,6 @@ def send_emails():
         logging.error(f"Error sending emails: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Vercel specific function handler
+if __name__ == "__main__":
+    app.run()
