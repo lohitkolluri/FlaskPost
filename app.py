@@ -4,6 +4,7 @@ import re
 import logging
 from fastapi import FastAPI, Form, File, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from jinja2 import Template
 import io
@@ -13,6 +14,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
 # Initialize FastAPI
 app = FastAPI()
+
+# Serve static files from the assets directory
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 # Email regex pattern for validation
 email_regex = re.compile(r"[^@]+@[^@]+\.[^@]+")
