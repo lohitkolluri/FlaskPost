@@ -7,7 +7,7 @@ import logging
 import io
 from jinja2 import Template
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='Frontend')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
