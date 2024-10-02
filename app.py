@@ -1,97 +1,126 @@
 import os
 import csv
 import re
-from flask import Flask, render_template, request, jsonify
-from flask_mail import Mail, Message
 import logging
-import io
+from fastapi import FastAPI, Form, File, UploadFile, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from jinja2 import Template
+import io
 
-app = Flask(__name__, template_folder='Frontend')
-
+# Logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
-smtp_config = {}
+# Initialize FastAPI
+app = FastAPI()
 
+# Email regex pattern for validation
 email_regex = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
-def is_valid_email(email):
-    """ Validate email format using regex. """
+# Global SMTP configuration variable
+smtp_config = {}
+
+# Helper function to validate email addresses
+def is_valid_email(email: str) -> bool:
     return re.fullmatch(email_regex, email) is not None
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Route for the index page
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    with open('Frontend/index.html', 'r') as f:
+        return HTMLResponse(content=f.read(), status_code=200)
 
-@app.route('/configure_smtp', methods=['POST'])
-def configure_smtp():
+# Route to configure SMTP settings
+@app.post("/configure_smtp")
+async def configure_smtp(smtpHost: str = Form(...), smtpPort: int = Form(...),
+                         smtpUser: str = Form(...), smtpPass: str = Form(...)):
     global smtp_config
     smtp_config = {
-        'MAIL_SERVER': request.form.get('smtpHost'),
-        'MAIL_PORT': int(request.form.get('smtpPort')),
-        'MAIL_USERNAME': request.form.get('smtpUser'),
-        'MAIL_PASSWORD': request.form.get('smtpPass'),
-        'MAIL_USE_TLS': True, 
-        'MAIL_USE_SSL': False  
+        'MAIL_SERVER': smtpHost,
+        'MAIL_PORT': smtpPort,
+        'MAIL_USERNAME': smtpUser,
+        'MAIL_PASSWORD': smtpPass,
+        'MAIL_STARTTLS': True,
+        'MAIL_SSL_TLS': False,
+        'USE_CREDENTIALS': True
     }
-    
+
     logging.info(f"SMTP Config: {smtp_config}")
-    app.config.update(smtp_config)
-    
-    return jsonify({'success': True, 'message': 'SMTP configuration updated successfully!'})
 
-@app.route('/send_emails', methods=['POST'])
-def send_emails():
-    html_content = request.form['htmlContent']
-    subject = request.form['subject']
-    sender_name = request.form['senderName']
-    
-    if 'csvFile' not in request.files:
-        return jsonify({'success': False, 'error': 'No CSV file uploaded'}), 400
+    return JSONResponse(content={'success': True, 'message': 'SMTP configuration updated successfully!'})
 
-    file = request.files['csvFile']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': 'Empty CSV file uploaded'}), 400
-    
+# Route to send emails
+@app.post("/send_emails")
+async def send_emails(subject: str = Form(...), senderName: str = Form(...),
+                      htmlContent: str = Form(...), csvFile: UploadFile = File(...)):
+    if not smtp_config:
+        raise HTTPException(status_code=400, detail="SMTP configuration is missing")
+
+    if csvFile.filename == '':
+        raise HTTPException(status_code=400, detail="Empty CSV file uploaded")
+
     try:
-        stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
-        csv_input = csv.DictReader(stream)  
-        
-        mail = Mail(app)
-        mail.init_app(app)
+        # Initialize FastMail with the current SMTP configuration
+        conf = ConnectionConfig(
+            MAIL_USERNAME=smtp_config['MAIL_USERNAME'],
+            MAIL_PASSWORD=smtp_config['MAIL_PASSWORD'],
+            MAIL_FROM=smtp_config['MAIL_USERNAME'],
+            MAIL_PORT=smtp_config['MAIL_PORT'],
+            MAIL_SERVER=smtp_config['MAIL_SERVER'],
+            MAIL_STARTTLS=smtp_config['MAIL_STARTTLS'],
+            MAIL_SSL_TLS=smtp_config['MAIL_SSL_TLS'],
+            USE_CREDENTIALS=smtp_config['USE_CREDENTIALS'],
+            MAIL_FROM_NAME=senderName,
+        )
+        mail = FastMail(conf)
+
+        # Read the uploaded CSV file
+        content = await csvFile.read()
+        csv_input = csv.DictReader(io.StringIO(content.decode("UTF8")))
 
         invalid_emails = []
         success_emails = []
 
-        with mail.connect() as conn:
-            for row in csv_input:
-                recipient_email = row['Email'].strip()
+        for row in csv_input:
+            recipient_email = row['Email'].strip()
 
-                if not is_valid_email(recipient_email):
-                    invalid_emails.append(recipient_email)
-                    continue 
-                
-                template = Template(html_content)
-                personalized_html = template.render(row) 
-                
-                msg = Message(
-                    subject=subject,
-                    sender=(sender_name, smtp_config['MAIL_USERNAME']),
-                    recipients=[recipient_email]
-                )
-                msg.html = personalized_html
-                conn.send(msg)
-                success_emails.append(recipient_email)
+            if not is_valid_email(recipient_email):
+                invalid_emails.append(recipient_email)
+                continue
+
+            # Render HTML content with personalized data
+            template = Template(htmlContent)
+            personalized_html = template.render(row)
+
+            # Prepare the email message
+            message = MessageSchema(
+                subject=subject,
+                recipients=[recipient_email],
+                body=personalized_html,
+                subtype="html"
+            )
+
+            # Send the email
+            await mail.send_message(message)
+            success_emails.append(recipient_email)
 
         if invalid_emails:
             logging.warning(f"Invalid email addresses: {invalid_emails}")
-        
-        return jsonify({'success': True, 'message': f'Emails sent to: {success_emails}. Invalid emails: {invalid_emails}'})
-    
+
+        return JSONResponse(content={
+            'success': True,
+            'message': f'Emails sent to: {success_emails}. Invalid emails: {invalid_emails}'
+        })
+
     except Exception as e:
         logging.error(f"Error sending emails: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-# Vercel specific function handler
+# Vercel-specific function handler (for deployment)
+@app.get("/vercel")
+async def vercel():
+    return JSONResponse(content={"message": "FastAPI is running on Vercel!"})
+
 if __name__ == "__main__":
-    app.run()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

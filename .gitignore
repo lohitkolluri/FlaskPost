@@ -7,3 +7,5 @@ venv/
 # Ignore input.csv
 input.csv
 .vercel
+
+__pycache__/

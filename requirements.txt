@@ -1,3 +1,6 @@
-flask
-flask_mail
-Jinja2
+fastapi
+uvicorn
+jinja2
+python-multipart
+fastapi-mail
+pydantic
