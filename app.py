@@ -96,9 +96,13 @@ async def send_emails(subject: str = Form(...), senderName: str = Form(...),
             template = Template(htmlContent)
             personalized_html = template.render(row)
 
+            # Render subject with personalized data
+            subject_template = Template(subject)
+            personalized_subject = subject_template.render(row)
+
             # Prepare the email message
             message = MessageSchema(
-                subject=subject,
+                subject=personalized_subject,  # Using the personalized subject here
                 recipients=[recipient_email],
                 body=personalized_html,
                 subtype="html"
@@ -119,6 +123,7 @@ async def send_emails(subject: str = Form(...), senderName: str = Form(...),
     except Exception as e:
         logging.error(f"Error sending emails: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Vercel-specific function handler (for deployment)
 @app.get("/vercel")

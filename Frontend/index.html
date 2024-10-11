@@ -32,20 +32,17 @@
         .container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr;
             grid-gap: 20px;
             width: 100vw;
             height: 100vh;
             background-color: #161616;
-            border-radius: 0;
             padding: 20px;
-            box-shadow: none;
         }
 
         .editor,
         .preview {
             background-color: #1f1f1f;
-            border-radius: 0;
+            border-radius: 10px;
             padding: 20px;
             box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.5);
             display: flex;
@@ -77,8 +74,7 @@
             resize: vertical;
         }
 
-        .editor button,
-        .file-upload button {
+        .editor button {
             background-color: #00cba9;
             color: #fff;
             padding: 15px;
@@ -86,13 +82,12 @@
             border-radius: 12px;
             font-size: 18px;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             flex: 1;
             margin: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
-        .editor button:hover,
-        .file-upload button:hover {
+        .editor button:hover {
             background-color: #00a17f;
         }
 
@@ -205,10 +200,11 @@
         <div class="editor">
             <h2>HTML Editor</h2>
             <form action="/send_emails" method="post" id="emailForm" enctype="multipart/form-data">
-                <textarea id="htmlInput" name="htmlContent" placeholder="Write or paste your HTML here..."></textarea>
-                <input type="text" name="subject" placeholder="Email Subject" required>
+                <textarea id="htmlInput" name="htmlContent" placeholder="Write or paste your HTML here..."
+                    required></textarea>
+                <input type="text" name="subject" placeholder="Email Subject (e.g., Hello {{ Name }})" required>
                 <input type="text" name="senderName" placeholder="Sender Name" required>
-                <input type="file" id="csvInput" name="csvFile" accept=".csv" style="display: none;">
+                <input type="file" id="csvInput" name="csvFile" accept=".csv" style="display: none;" required>
                 <div class="button-container">
                     <button type="button" id="smtpButton">Configure SMTP</button>
                     <button type="button" id="uploadButton">Upload CSV</button>
@@ -242,7 +238,6 @@
     <div class="toast" id="toast"></div>
 
     <script>
-
         document.getElementById("uploadButton").onclick = function () {
             document.getElementById("csvInput").click();
         };
@@ -270,50 +265,30 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ smtpHost: host, smtpPort: port, smtpUser: user, smtpPass: pass })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast("SMTP settings saved!");
-                        document.getElementById("smtpModal").style.display = "none";
-                    } else {
-                        showToast("Failed to save SMTP settings!");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error:", error);
-                });
+            }).then(response => {
+                if (response.ok) {
+                    showToast("SMTP configuration saved successfully!");
+                } else {
+                    showToast("Error saving SMTP configuration");
+                }
+            });
+
+            document.getElementById("smtpModal").style.display = "none";
         };
 
-        const htmlInput = document.getElementById('htmlInput');
-        const emailPreview = document.getElementById('emailPreview');
-
-        htmlInput.addEventListener('input', () => {
-            const htmlContent = htmlInput.value;
-            emailPreview.srcdoc = `
-                <html>
-                    <head>
-                        <style>
-                            body {
-                                color: white; 
-                                background-color: #121212; 
-                            }
-                        </style>
-                    </head>
-                    <body>${htmlContent}</body>
-                </html>
-            `;
-        });
-
         function showToast(message) {
-            const toast = document.getElementById('toast');
+            const toast = document.getElementById("toast");
             toast.textContent = message;
-            toast.classList.add('show');
-
-            setTimeout(() => {
-                toast.classList.remove('show');
+            toast.className = "toast show";
+            setTimeout(function () {
+                toast.className = toast.className.replace("show", "");
             }, 3000);
         }
+
+        document.getElementById("htmlInput").oninput = function () {
+            const previewFrame = document.getElementById("emailPreview");
+            previewFrame.srcdoc = this.value;
+        };
     </script>
 </body>
 

@@ -9,3 +9,5 @@ input.csv
 .vercel
 
 __pycache__/
+
+.DS_Store
