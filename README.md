@@ -1,6 +1,6 @@
 <h1 align="center" id="title">Flask Post - Mass Mailer</h1>
 
-<p id="description">FlaskPost is a powerful and user-friendly web application designed for sending personalized mass emails effortlessly. Built with Flask it allows users to configure SMTP settings upload CSV files for recipient management and craft customized HTML email templates. With a sleek interface that includes an integrated HTML editor and a live preview feature FlaskPost ensures a seamless email creation experience. Whether for marketing campaigns newsletters or event invitations FlaskPost empowers users to reach their audience effectively while maintaining a professional touch.</p>
+<p id="description">FlaskPost is a powerful and user-friendly web application designed for sending personalized mass emails effortlessly. Built with FastAPI it allows users to configure SMTP settings upload CSV files for recipient management and craft customized HTML email templates. With a sleek interface that includes an integrated HTML editor and a live preview feature FlaskPost ensures a seamless email creation experience. Whether for marketing campaigns newsletters or event invitations FlaskPost empowers users to reach their audience effectively while maintaining a professional touch.</p>
 
 <h2>🚀 Demo</h2>
 
@@ -58,8 +58,8 @@ python3 app.py
 
 Technologies used in the project:
 
-- Flask
-- Flask-Mail
+- FastAPI
+- FastMail
 - Jinja2
 - REST API
 - HTML/CSS/JS
