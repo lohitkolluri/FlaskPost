@@ -9,8 +9,8 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from jinja2 import Template
 import io
 
-# Logging configuration
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+# Logging configuration with aesthetic formatting
+logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # Initialize FastAPI
 app = FastAPI()
@@ -75,6 +75,7 @@ async def send_emails(subject: str = Form(...), senderName: str = Form(...),
             MAIL_SSL_TLS=smtp_config['MAIL_SSL_TLS'],
             USE_CREDENTIALS=smtp_config['USE_CREDENTIALS'],
             MAIL_FROM_NAME=senderName,
+            VALIDATE_CERTS=False  # Can be set to True for production with verified SSL certs
         )
         mail = FastMail(conf)
 
@@ -108,12 +109,21 @@ async def send_emails(subject: str = Form(...), senderName: str = Form(...),
                 subtype="html"
             )
 
-            # Send the email
-            await mail.send_message(message)
-            success_emails.append(recipient_email)
+            try:
+                # Send the email
+                await mail.send_message(message)
+                success_emails.append(recipient_email)
+                logging.info(f"Email successfully sent to: {recipient_email}")
+            except Exception as e:
+                logging.error(f"Failed to send email to {recipient_email}: {e}")
 
         if invalid_emails:
             logging.warning(f"Invalid email addresses: {invalid_emails}")
+
+        # Aesthetic log separator for better readability
+        logging.info("="*40)
+        logging.info(f"Email send operation complete. Successful: {len(success_emails)}, Failed: {len(invalid_emails)}")
+        logging.info("="*40)
 
         return JSONResponse(content={
             'success': True,

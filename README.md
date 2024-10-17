@@ -6,6 +6,12 @@
 
 [https://flask-post.vercel.app/](https://flask-post.vercel.app/)
 
+<h2>🖼️ Diagram</h2>
+
+<p align="center">
+    <img src="FlaskPost.png" alt="FlaskPost Diagram" width="600px">
+</p>
+
 <h2>🧐 Features</h2>
 
 Here're some of the project's best features:
