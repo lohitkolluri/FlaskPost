@@ -2,6 +2,7 @@ import os
 import csv
 import re
 import logging
+import time
 from fastapi import FastAPI, Form, File, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles 
@@ -9,7 +10,7 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from jinja2 import Template
 import io
 
-# Logging configuration with aesthetic formatting
+# Logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 # Initialize FastAPI
@@ -24,9 +25,19 @@ email_regex = re.compile(r"[^@]+@[^@]+\.[^@]+")
 # Global SMTP configuration variable
 smtp_config = {}
 
+# Rate limiting variables
+email_send_interval = 1 
+retry_attempts = 3 
+
 # Helper function to validate email addresses
 def is_valid_email(email: str) -> bool:
     return re.fullmatch(email_regex, email) is not None
+
+# Helper function to validate CSV format
+def validate_csv(file_content: str) -> bool:
+    reader = csv.DictReader(io.StringIO(file_content))
+    required_columns = {"Email"}
+    return required_columns.issubset(reader.fieldnames)
 
 # Route for the index page
 @app.get("/", response_class=HTMLResponse)
@@ -48,9 +59,7 @@ async def configure_smtp(smtpHost: str = Form(...), smtpPort: int = Form(...),
         'MAIL_SSL_TLS': False,
         'USE_CREDENTIALS': True
     }
-
     logging.info(f"SMTP Config: {smtp_config}")
-
     return JSONResponse(content={'success': True, 'message': 'SMTP configuration updated successfully!'})
 
 # Route to send emails
@@ -63,79 +72,80 @@ async def send_emails(subject: str = Form(...), senderName: str = Form(...),
     if csvFile.filename == '':
         raise HTTPException(status_code=400, detail="Empty CSV file uploaded")
 
-    try:
-        # Initialize FastMail with the current SMTP configuration
-        conf = ConnectionConfig(
-            MAIL_USERNAME=smtp_config['MAIL_USERNAME'],
-            MAIL_PASSWORD=smtp_config['MAIL_PASSWORD'],
-            MAIL_FROM=smtp_config['MAIL_USERNAME'],
-            MAIL_PORT=smtp_config['MAIL_PORT'],
-            MAIL_SERVER=smtp_config['MAIL_SERVER'],
-            MAIL_STARTTLS=smtp_config['MAIL_STARTTLS'],
-            MAIL_SSL_TLS=smtp_config['MAIL_SSL_TLS'],
-            USE_CREDENTIALS=smtp_config['USE_CREDENTIALS'],
-            MAIL_FROM_NAME=senderName,
-            VALIDATE_CERTS=False  # Can be set to True for production with verified SSL certs
+    # Read and validate the uploaded CSV file
+    content = await csvFile.read()
+    if not validate_csv(content.decode("UTF8")):
+        raise HTTPException(status_code=400, detail="CSV validation failed: Missing required columns")
+
+    csv_input = csv.DictReader(io.StringIO(content.decode("UTF8")))
+    invalid_emails = []
+    success_emails = []
+
+    for row in csv_input:
+        recipient_email = row['Email'].strip()
+
+        if not is_valid_email(recipient_email):
+            invalid_emails.append(recipient_email)
+            continue
+
+        # Render HTML content and subject
+        template = Template(htmlContent)
+        personalized_html = template.render(row)
+        subject_template = Template(subject)
+        personalized_subject = subject_template.render(row)
+
+        # Prepare the email message
+        message = MessageSchema(
+            subject=personalized_subject,
+            recipients=[recipient_email],
+            body=personalized_html,
+            subtype="html"
         )
-        mail = FastMail(conf)
 
-        # Read the uploaded CSV file
-        content = await csvFile.read()
-        csv_input = csv.DictReader(io.StringIO(content.decode("UTF8")))
-
-        invalid_emails = []
-        success_emails = []
-
-        for row in csv_input:
-            recipient_email = row['Email'].strip()
-
-            if not is_valid_email(recipient_email):
-                invalid_emails.append(recipient_email)
-                continue
-
-            # Render HTML content with personalized data
-            template = Template(htmlContent)
-            personalized_html = template.render(row)
-
-            # Render subject with personalized data
-            subject_template = Template(subject)
-            personalized_subject = subject_template.render(row)
-
-            # Prepare the email message
-            message = MessageSchema(
-                subject=personalized_subject,  # Using the personalized subject here
-                recipients=[recipient_email],
-                body=personalized_html,
-                subtype="html"
-            )
-
+        for attempt in range(retry_attempts):
             try:
+                conf = ConnectionConfig(
+                    MAIL_USERNAME=smtp_config['MAIL_USERNAME'],
+                    MAIL_PASSWORD=smtp_config['MAIL_PASSWORD'],
+                    MAIL_FROM=smtp_config['MAIL_USERNAME'],
+                    MAIL_PORT=smtp_config['MAIL_PORT'],
+                    MAIL_SERVER=smtp_config['MAIL_SERVER'],
+                    MAIL_STARTTLS=smtp_config['MAIL_STARTTLS'],
+                    MAIL_SSL_TLS=smtp_config['MAIL_SSL_TLS'],
+                    USE_CREDENTIALS=smtp_config['USE_CREDENTIALS'],
+                    MAIL_FROM_NAME=senderName,
+                    VALIDATE_CERTS=False
+                )
+                mail = FastMail(conf)
+
                 # Send the email
                 await mail.send_message(message)
                 success_emails.append(recipient_email)
                 logging.info(f"Email successfully sent to: {recipient_email}")
+
+                # Wait for the specified interval before sending the next email
+                time.sleep(email_send_interval)
+                break
             except Exception as e:
-                logging.error(f"Failed to send email to {recipient_email}: {e}")
+                logging.error(f"Attempt {attempt + 1}/{retry_attempts} - Failed to send email to {recipient_email}: {e}")
+                if attempt < retry_attempts - 1:
+                    time.sleep(email_send_interval)  
+                else:
+                    logging.error(f"All attempts failed for {recipient_email}")
 
-        if invalid_emails:
-            logging.warning(f"Invalid email addresses: {invalid_emails}")
+    if invalid_emails:
+        logging.warning(f"Invalid email addresses: {invalid_emails}")
 
-        # Aesthetic log separator for better readability
-        logging.info("="*40)
-        logging.info(f"Email send operation complete. Successful: {len(success_emails)}, Failed: {len(invalid_emails)}")
-        logging.info("="*40)
+    logging.info("=" * 40)
+    logging.info(f"Email send operation complete. Successful: {len(success_emails)}, Failed: {len(invalid_emails)}")
+    logging.info("=" * 40)
 
-        return JSONResponse(content={
-            'success': True,
-            'message': f'Emails sent to: {success_emails}. Invalid emails: {invalid_emails}'
-        })
+    return JSONResponse(content={
+        'success': True,
+        'message': f'Emails sent to: {success_emails}. Invalid emails: {invalid_emails}'
+    })
 
-    except Exception as e:
-        logging.error(f"Error sending emails: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Vercel-specific function handler (for deployment)
+# Vercel-specific function handler
 @app.get("/vercel")
 async def vercel():
     return JSONResponse(content={"message": "FastAPI is running on Vercel!"})
