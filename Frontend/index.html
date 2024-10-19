@@ -205,9 +205,14 @@
                 <input type="text" name="subject" placeholder="Email Subject" required>
                 <input type="text" name="senderName" placeholder="Sender Name" required>
                 <input type="file" id="csvInput" name="csvFile" accept=".csv" style="display: none;" required>
+
+                <input type="file" name="attachment" accept="*/*">
+                <input type="datetime-local" name="scheduleTime" placeholder="Schedule Time">
+
                 <div class="button-container">
                     <button type="button" id="smtpButton">Configure SMTP</button>
                     <button type="button" id="uploadButton">Upload CSV</button>
+                    <button type="button" id="previewCsvButton">Preview CSV</button>
                     <button type="submit">Send Emails</button>
                 </div>
             </form>
@@ -245,6 +250,31 @@
         document.getElementById("csvInput").onchange = function (event) {
             const fileName = event.target.files[0] ? event.target.files[0].name : "No file chosen";
             showToast("Selected file: " + fileName);
+        };
+
+        document.getElementById("previewCsvButton").onclick = function () {
+            const csvFile = document.getElementById("csvInput").files[0];
+            if (!csvFile) {
+                showToast("No CSV file selected");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("csvFile", csvFile);
+
+            fetch('/preview_csv', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.preview);
+                    showToast("CSV Preview: " + JSON.stringify(data.preview));
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast("Error previewing CSV");
+                });
         };
 
         document.getElementById("smtpButton").onclick = function () {
