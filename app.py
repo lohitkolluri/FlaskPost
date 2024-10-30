@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Form, File, UploadFile, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
@@ -76,9 +76,7 @@ async def preview_csv(csvFile: UploadFile = File(...)):
 # Route to send emails
 @app.post("/send_emails")
 async def send_emails(subject: str = Form(...), senderName: str = Form(...),
-                      htmlContent: str = Form(...), csvFile: UploadFile = File(...),
-                      attachment: UploadFile = File(None), schedule_time: str = Form(None),
-                      background_tasks: BackgroundTasks = BackgroundTasks()):
+                      htmlContent: str = Form(...), csvFile: UploadFile = File(...)):
     if not smtp_config:
         raise HTTPException(status_code=400, detail="SMTP configuration is missing")
 
@@ -90,32 +88,14 @@ async def send_emails(subject: str = Form(...), senderName: str = Form(...),
     if not validate_csv(content.decode("UTF-8")):
         raise HTTPException(status_code=400, detail="CSV validation failed: Missing required columns")
 
-    # Schedule email sending if schedule_time is provided
-    if schedule_time:
-        try:
-            scheduled_time = datetime.strptime(schedule_time, "%Y-%m-%d %H:%M:%S")
-            delay = (scheduled_time - datetime.now()).total_seconds()
-            if delay > 0:
-                background_tasks.add_task(schedule_emails, delay, subject, senderName, htmlContent, content, attachment)
-                return JSONResponse(content={'success': True, 'message': f'Emails scheduled for {schedule_time}'})
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid schedule time format. Use YYYY-MM-DD HH:MM:SS.")
-    
-    # Send emails immediately if no scheduling
-    await schedule_emails(0, subject, senderName, htmlContent, content, attachment)
+    # Send emails immediately
+    await schedule_emails(subject, senderName, htmlContent, content)
     return JSONResponse(content={'success': True, 'message': 'Emails sent successfully'})
 
-async def schedule_emails(delay: float, subject: str, senderName: str, htmlContent: str, csv_content: bytes, attachment: UploadFile):
-    time.sleep(delay)
+async def schedule_emails(subject: str, senderName: str, htmlContent: str, csv_content: bytes):
     csv_input = csv.DictReader(io.StringIO(csv_content.decode("UTF-8")))
     invalid_emails = []
     success_emails = []
-
-    # Read attachment if available
-    attachment_data = None
-    if attachment:
-        attachment_data = await attachment.read()
-        attachment = UploadFile(filename=attachment.filename, file=io.BytesIO(attachment_data))
 
     for row in csv_input:
         recipient_email = row['Email'].strip()
@@ -136,7 +116,6 @@ async def schedule_emails(delay: float, subject: str, senderName: str, htmlConte
             recipients=[recipient_email],
             body=personalized_html,
             subtype="html",
-            attachments=[attachment] if attachment else None
         )
 
         for attempt in range(retry_attempts):
@@ -166,7 +145,7 @@ async def schedule_emails(delay: float, subject: str, senderName: str, htmlConte
             except Exception as e:
                 logging.error(f"Attempt {attempt + 1}/{retry_attempts} - Failed to send email to {recipient_email}: {e}")
                 if attempt < retry_attempts - 1:
-                    time.sleep(email_send_interval) 
+                    time.sleep(email_send_interval)
                 else:
                     logging.error(f"All attempts failed for {recipient_email}")
 
