@@ -4,3 +4,4 @@ jinja2
 python-multipart
 fastapi-mail
 pydantic
+h11>=0.16.0 # not directly required, pinned by Snyk to avoid a vulnerability
